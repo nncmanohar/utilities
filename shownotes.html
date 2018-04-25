@@ -1,0 +1,69 @@
+<html>
+   <head>
+      <script>
+	  
+	     var notes = "";
+		 var i = 0;
+		 var dividor = "---------------------------------------------------------------------------------------------------";
+		 
+         function openFile(event) {
+		 
+           var input = event.target;         
+           var reader = new FileReader();
+           reader.onload = function(){             
+             notes = reader.result.split(dividor);
+			 hideInputForm();
+             showslide(i);
+           };
+           reader.readAsText(input.files[0]);		   
+         }
+		 
+		 function hideInputForm(){
+			document.getElementById("fileChoser").innerHTML = "";
+		 }
+         
+       
+         function showslide(i) {   
+		    if(i < 0) i=0;
+			if(i >= notes.length) i= notes.length-1;
+  			 document.getElementById("demo").innerHTML = notes[i];
+         }
+		 
+		 function showPreviousSlide(){
+		   if (i==0) showslide(i);
+		   else   showslide(--i)
+		   
+		 }
+		 
+		 function showNextSlide(){
+		   if (i == notes.length-1 ) showslide(notes.length-1);
+		   else   showslide(++i)
+		   
+		 }
+		 
+		
+		document.onkeydown = function(e){
+		    
+			e = e || window.event;
+			var key = e.which || e.keyCode;
+			
+			if(key===37){
+				showPreviousSlide();
+			}
+			
+			if(key===39){
+				showNextSlide();
+			}
+		}
+		
+      </script>
+   </head>
+   <body>
+	  <div id="fileChoser">
+      <input id="fileChoserInput"  type='file'  accept='text/plain' onchange='openFile(event)'><br>
+	  </div>
+      <pre id='demo' >
+         ...
+      </pre>
+   </body>
+</html>
