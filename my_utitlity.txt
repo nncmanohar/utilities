@@ -1,0 +1,13 @@
+$Absolute_Important_hash = get_source_hash "H:\ALL\Absolute_Important"
+$Important_hash = get_source_hash "H:\ALL\Important"
+$temp_hash = get_source_hash "H:\ALL\103_Exercise"
+
+$SRC_PATH="D:\Camera\New"
+check_files_to_copy $SRC_PATH $Absolute_Important_hash
+check_files_to_copy $SRC_PATH $Important_hash
+check_files_to_copy $SRC_PATH $temp_hash
+
+remove_empty_directories     $SRC_PATH
+
+6.23 GB (6,692,903,934.00 byte
+6,614,628,641 bytes

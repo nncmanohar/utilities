@@ -1,0 +1,34 @@
+Get-ChildItem "G:\Manohar Backup" -Recurse | where{$_.Length -eq 0} |
+Select @{N='EmptyFiles';E={$_.FullName}}
+
+gci C:\Temp -Recurse | foreach {
+   if( $_.psiscontainer -eq $true){
+      if((gci $_.FullName) -eq $null){$_.FullName}
+   }
+}
+
+#emtpy directories
+gci "" -Recurse -Directory | foreach {
+   if((gci $_.FullName) -eq $null){$_.FullName}
+}
+
+gci "G:\" -Recurse -Directory | foreach {
+   if((gci $_.FullName) -eq $null){$_.FullName}
+}
+
+
+function Get-Version {
+    $PSVersionTable.PSVersion
+}
+
+function Number_of_Files {
+
+    param (
+        $FOLDER_NAME
+    )
+
+    (gci $FOLDER_NAME -Recurse  | measure).count
+
+}
+
+Number_of_Files G:\All\Desktop\Desktop\chesskid

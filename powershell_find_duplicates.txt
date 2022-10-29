@@ -1,0 +1,222 @@
+$path = Get-Command -Name powershell.exe | 
+           Select-Object -ExpandProperty Source
+$result = Get-FileHash -Path $path -Algorithm MD5
+$result.Hash
+---------------------------------------------------------------------------------------------------
+$Path = [Environment]::GetFolderPath('D:\Books2\chess')
+
+gc log.txt | select -first 10
+
+$Path = 'H:\ALL\Absolute Important'
+$group = Get-ChildItem -Path $Path -File -Recurse -ErrorAction Ignore |
+    Where-Object Length -gt 0 
+	|
+    Group-Object -Property Length -AsHashTable 
+	select -first 10
+	
+$hash = @{}
+foreach ($file in $group) {
+	$key=$file.Length.ToString()
+	$value=$file.FullName
+	if ($hash[$key].length -eq 0)
+    {
+      $hash.add($key, $value)
+    }
+	else
+	{
+		$NEW_FILE_NAME=(Get-Item $value ).Name
+		$EXISTING_FILE_NAME=(Get-Item $hash[$key] ).Name
+			
+		$NEW_FILE_HASH=(Get-FileHash -Path $value -Algorithm SHA1).Hash
+		$EXISTING_FILE_HASH=(Get-FileHash -Path $hash[$key] -Algorithm SHA1).Hash
+		if ($NEW_FILE_NAME  -ne $EXISTING_FILE_NAME )
+		{	
+			"Names are different we can ignore for now"
+			#$value
+			#$hash[$key]
+		}
+		elseif ( $NEW_FILE_HASH -ne $EXISTING_FILE_HASH )
+		{
+			"Same name and NOT duplicates"
+			#$value
+			#$hash[$key]
+		}
+		else
+		{
+			"Same Name and duplicates"
+			$value
+			$hash[$key]
+			$NEW_NAME="H:\ALL\Conformed_duplicates\$((New-Guid).ToString()).$($NEW_FILE_NAME)"
+			"new name will be $NEW_NAME "
+			Move-Item -Path $value -Destination $NEW_NAME
+		}
+	}
+}
+
+(Get-Item $value ).Name
+(Get-Item $hash[$key] ).Name
+
+
+
+$fmt = "{0} [{1}]`t-> {2} [{3}]"
+$hash.Keys | % {$fmt -f $_, $_.GetType().Name, $hash[$_], $hash[$_].GetType().Name}
+	
+$candidates = foreach($pile in $group.Values)
+{
+    if ($pile.Count -gt 1)
+    {
+        $pile
+    }
+}
+$candidates
+
+
+$duplicates = $candidates |
+  Group-Object -Property {
+        (Get-FileHash -Path $_.FullName -Algorithm SHA1).Hash
+    } -AsHashTable -AsString
+	
+$duplicates.Count
+$keys = $duplicates.Keys
+$keys = $keys.Clone()
+
+$keys | 
+    Where-Object { $duplicates[$_].Count -eq 1 } | 
+    ForEach-Object { $duplicates.Remove($_) }
+
+$duplicates.Count
+---------------------------------------------------------------------------------------------------
+function Find-PSOneDuplicateFile
+{
+
+  param
+  (
+    [String]
+    [Parameter(Mandatory)]
+    $Path,
+  
+    [String]
+    $Filter = '*'
+  )
+
+  & { 
+    try
+    {
+      Write-Progress -Activity 'Acquiring Files' -Status 'Fast Method'
+      [IO.DirectoryInfo]::new($Path).GetFiles('*', 'AllDirectories')
+    }
+    catch
+    {
+      Write-Progress -Activity 'Acquiring Files' -Status 'Falling Back to Slow Method'
+      Get-ChildItem -Path $Path -File -Recurse -ErrorAction Ignore
+    }
+  } | 
+  & {
+    process
+    {
+      if ($_.Length -gt 0)
+      {
+        $_
+      }
+    }
+  } | 
+  & { 
+    begin 
+    { $hash = @{} } 
+
+    process 
+    { 
+      $file = $_
+      $key = $file.Length.toString()
+      
+      if ($hash.ContainsKey($key) -eq $false) 
+      {
+        $hash[$key] = [Collections.Generic.List[System.IO.FileInfo]]::new()
+      }
+      $hash[$key].Add($file)
+    } 
+  
+    end 
+    { 
+      foreach($pile in $hash.Values)
+      {
+        if ($pile.Count -gt 1)
+        {
+          $pile
+        }
+      }
+    } 
+  } | 
+  & {
+    end { ,@($input) }
+  } |
+  & {
+    begin 
+    {
+      $hash = @{}
+      
+      $c = 0
+    }
+      
+    process
+    {
+      $totalNumber = $_.Count
+      foreach($file in $_)
+      {
+      
+        $c++
+      
+        if ($c % 20 -eq 0)
+        {
+          $percentComplete = $c * 100 / $totalNumber
+          Write-Progress -Activity 'Hashing File Content' -Status $file.Name -PercentComplete $percentComplete
+        }
+      
+        $result = Get-FileHash -Path $file.FullName -Algorithm SHA1
+        $key = '{0}:{1}' -f $result.Hash, $file.Length
+      
+        if ($hash.ContainsKey($key) -eq $false)
+        {
+          $hash.Add($key, [Collections.Generic.List[System.IO.FileInfo]]::new())
+        }
+      
+        $hash[$key].Add($file)
+      }
+    }
+      
+    end
+    {
+      
+      $keys = @($hash.Keys).Clone()
+      
+      foreach($key in $keys)
+      {
+        if ($hash[$key].Count -eq 1)
+        {
+          $hash.Remove($key)
+        }
+      }
+       
+      $hash
+    }
+  }
+}
+
+
+$path = [Environment]::GetFolderPath('MyDocuments')
+
+$path='D:\Books2\chess'
+$result = Find-PSOneDuplicateFile -Path $path 
+
+# output duplicates
+& { foreach($key in $result.Keys)
+{
+    foreach($file in $result[$key])
+    {
+        $file |
+            Add-Member -MemberType NoteProperty -Name Hash -Value $key -PassThru | 
+            Select-Object Hash, Length, FullName 
+    }
+}
+} | Format-Table -GroupBy Hash -Property FullName
+
