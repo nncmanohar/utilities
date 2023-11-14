@@ -1,69 +1,166 @@
 <html>
    <head>
+      <style>
+		#demo {
+			font-size: 20px;
+		}
+        #mySelect{
+            min-height: 1000px;
+        }
+	  </style>
       <script>
-	  
+         var inputFiles;
+        
 	     var notes = "";
-		 var i = 0;
+		 var slideIndex = 0;
 		 var dividor = "---------------------------------------------------------------------------------------------------";
 		 
-         function openFile(event) {
-		 
-           var input = event.target;         
+         
+         var chosenFileIndex='';
+          
+         
+         function populateMenu(event) {
+            hideInputForm();
+            
+            inputFiles = document.getElementById("InputFiles").files;
+            var selectionList = document.getElementById("mySelect");
+
+            for (chosenFileIndex = 0; chosenFileIndex < inputFiles.length; chosenFileIndex++) {
+                let file = inputFiles[chosenFileIndex];                
+                let option = document.createElement("option");
+                option.text = file.name;
+                option.value = chosenFileIndex;
+                selectionList.add(option);
+            }
+            
+            showMenu();                        
+         }
+         
+
+         
+         function startPresentation(){
+            readFileAndShowNotes(document.getElementById("mySelect").value)
+         }
+         
+		 function readFileAndShowNotes(index){
            var reader = new FileReader();
            reader.onload = function(){             
-             notes = reader.result.split(dividor);
-			 hideInputForm();
-             showslide(i);
+             notes = reader.result.replace(/</g,"&lt;").split(dividor);
+             slideIndex=0;
+			 hideMenu();
+             showPresentationArea();
+             showCurrentSlide();             
            };
-           reader.readAsText(input.files[0]);		   
-         }
+           reader.readAsText(inputFiles[index]);
+		 }
+
 		 
-		 function hideInputForm(){
-			document.getElementById("fileChoser").innerHTML = "";
+		 function moveToPreviousSlide(){
+		   if (slideIndex != 0) --slideIndex;		   
+		   showCurrentSlide();
+		   
+		 }
+		 
+		 function moveToNextSlide(){
+		   if (slideIndex != notes.length-1 )
+			++slideIndex;		  
+			showCurrentSlide();		   
 		 }
          
-       
-         function showslide(i) {   
-		    if(i < 0) i=0;
-			if(i >= notes.length) i= notes.length-1;
-  			 document.getElementById("demo").innerHTML = notes[i];
+        function showCurrentSlide() {   
+			correctSlideNumberIfRequired();
+			document.title = (slideIndex+1) + "/" + notes.length;
+  			 document.getElementById("demo").innerHTML = notes[slideIndex];			 
          }
 		 
-		 function showPreviousSlide(){
-		   if (i==0) showslide(i);
-		   else   showslide(--i)
-		   
+		 function correctSlideNumberIfRequired(){
+		 	if(slideIndex < 0) slideIndex=0;
+			if(slideIndex >= notes.length) slideIndex= notes.length-1;
 		 }
-		 
-		 function showNextSlide(){
-		   if (i == notes.length-1 ) showslide(notes.length-1);
-		   else   showslide(++i)
-		   
-		 }
-		 
-		
+         
+        
+        
 		document.onkeydown = function(e){
 		    
 			e = e || window.event;
 			var key = e.which || e.keyCode;
 			
-			if(key===37){
-				showPreviousSlide();
+			//alert(key);
+            
+			if(key===77){ //show menu
+				showMenu();
 			}
 			
-			if(key===39){
-				showNextSlide();
+			if(key===32){ //space bar
+				moveToNextSlide();
 			}
+            
+			if(key===39){ //right arrow
+				moveToNextSlide();
+			}
+			
+			if(key===37){ //left arrow
+				moveToPreviousSlide();
+			}	
+			
+			if(key===82){ //r
+				showInputForm()
+			}
+			
+			if(key===71){ //g
+				slideIndex = prompt("slide number?", "0");
+				showCurrentSlide();
+			}
+			
 		}
-		
-      </script>
+        
+         function hidePresentationArea(){
+            document.getElementById("demo").style.display = "none";
+         }
+         
+         function showPresentationArea(){
+            document.getElementById("demo").style.display = "block";
+         }
+         
+		 function hideInputForm(){
+			document.getElementById("fileChoser").style.display = "none";
+		 } 
+
+		 function showInputForm(){
+			document.getElementById("fileChoser").style.display = "block";
+		 } 
+
+		 function hideMenu(){
+			document.getElementById("menu").style.display = "none";
+         }
+         
+		 function showMenu(){
+			document.getElementById("menu").style.display = "block"; 
+            hidePresentationArea();
+         }
+         
+
+		 
+	
+
+</script>
    </head>
    <body>
 	  <div id="fileChoser">
-      <input id="fileChoserInput"  type='file'  accept='text/plain' onchange='openFile(event)'><br>
+      <input type='file'  id="InputFiles"  multiple  accept='text/plain' onchange='populateMenu(event)'><br>
 	  </div>
+      
+      <div id="menu">
+          <select id="mySelect" size="8" onchange="startPresentation()">
+          </select>
+      </div>
       <pre id='demo' >
          ...
       </pre>
    </body>
 </html>
+
+<script>
+hidePresentationArea();
+hideMenu();
+</script>
